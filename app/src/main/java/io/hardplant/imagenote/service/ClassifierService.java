@@ -6,6 +6,9 @@ import android.content.Context;
 import android.content.Intent;
 import android.os.Environment;
 import android.os.FileObserver;
+import android.os.Handler;
+import android.os.Looper;
+import android.provider.MediaStore;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
@@ -31,6 +34,7 @@ public class ClassifierService extends JobIntentService {
     private static String path = "";
     private static FileObserver fileObserver;
     private HashMap<String, String> db;
+    private ImageObserver2 observer;
 
 
     public static void enqueueWork(Context context, Intent intent) {
@@ -42,9 +46,40 @@ public class ClassifierService extends JobIntentService {
     @Override
     public void onCreate() {
         super.onCreate();
-        path = getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS).getAbsolutePath();
+        addContentObserver();
+        makeNotify();
+    }
 
-        db = new HashMap<>();
+    @Override
+    protected void onHandleWork(@NonNull Intent intent) {
+
+    }
+
+    @Override
+    public void onDestroy() {
+        if (fileObserver != null) {
+            fileObserver.stopWatching();
+            fileObserver = null;
+        }
+
+        deleteContentObserver();
+
+        NotificationManagerCompat notificationManager = NotificationManagerCompat.from(getApplicationContext());
+        notificationManager.cancel(NOTIFICATION_ID);
+
+        super.onDestroy();
+    }
+
+    private void addContentObserver() {
+        observer = new ImageObserver2(new Handler(Looper.getMainLooper()));
+        getApplicationContext().getContentResolver().registerContentObserver(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, true, observer);
+    }
+
+    private void deleteContentObserver() {
+        getApplicationContext().getContentResolver().unregisterContentObserver(observer);
+    }
+
+    private void makeNotify() {
         NotificationCompat.Builder mNotifyBuilder = new NotificationCompat.Builder(getApplicationContext(), CHANNEL_ID);
 
         mNotifyBuilder
@@ -55,6 +90,13 @@ public class ClassifierService extends JobIntentService {
 
         NotificationManagerCompat notificationManager = NotificationManagerCompat.from(getApplicationContext());
         notificationManager.notify(NOTIFICATION_ID, mNotifyBuilder.build());
+    }
+    private void makeFileObserver() {
+
+        path = getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS).getAbsolutePath();
+
+        db = new HashMap<>();
+
 
         File dir = new File(path);
         if (!dir.isDirectory()) {
@@ -74,7 +116,6 @@ public class ClassifierService extends JobIntentService {
             fileObserver.startWatching();
             Log.i(TAG, "onCreate: File Observer started");
         }
-
     }
 
     private void moveFile(String s) {
@@ -101,19 +142,4 @@ public class ClassifierService extends JobIntentService {
         return Paths.get(imagesDir, classifiedName, fileName);
     }
 
-    @Override
-    protected void onHandleWork(@NonNull Intent intent) {
-
-    }
-
-    @Override
-    public void onDestroy() {
-        fileObserver.stopWatching();
-        fileObserver = null;
-
-        NotificationManagerCompat notificationManager = NotificationManagerCompat.from(getApplicationContext());
-        notificationManager.cancel(NOTIFICATION_ID);
-
-        super.onDestroy();
-    }
 }

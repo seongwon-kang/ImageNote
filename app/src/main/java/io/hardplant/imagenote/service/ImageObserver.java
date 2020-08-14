@@ -17,6 +17,7 @@ public class ImageObserver {
     private class ObserverWithListener extends ContentObserver {
         private final OnChangeListener mListener;
 
+
         public ObserverWithListener(OnChangeListener listener)
         {
             super(new Handler());
