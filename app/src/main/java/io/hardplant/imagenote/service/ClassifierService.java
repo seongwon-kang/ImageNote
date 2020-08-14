@@ -4,6 +4,7 @@ import android.app.NotificationManager;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.media.Image;
 import android.os.FileObserver;
 import android.util.Log;
 
@@ -12,6 +13,7 @@ import androidx.annotation.Nullable;
 import androidx.core.app.JobIntentService;
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
+import androidx.room.Room;
 
 import java.io.File;
 import java.io.IOException;
@@ -21,6 +23,7 @@ import java.nio.file.Paths;
 
 import io.hardplant.imagenote.MainActivity;
 import io.hardplant.imagenote.R;
+import io.hardplant.imagenote.data.ImageDatabase;
 
 public class ClassifierService extends JobIntentService {
     public static final String CHANNEL_ID = "notification";
@@ -28,6 +31,7 @@ public class ClassifierService extends JobIntentService {
     private static final int NOTIFICATION_ID = 39;
     private static String path = "";
     private static FileObserver fileObserver;
+    public static ImageDatabase db;
 
 
     public static void enqueueWork(Context context, Intent intent) {
@@ -39,6 +43,8 @@ public class ClassifierService extends JobIntentService {
     @Override
     public void onCreate() {
         super.onCreate();
+        Room.databaseBuilder(getApplicationContext(), ImageDatabase.class, "imageDatabase").build();
+
         NotificationCompat.Builder mNotifyBuilder = new NotificationCompat.Builder(getApplicationContext(), CHANNEL_ID);
 
         mNotifyBuilder
