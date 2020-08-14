@@ -4,6 +4,7 @@ import android.app.NotificationManager;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.os.Environment;
 import android.os.FileObserver;
 import android.util.Log;
 
@@ -18,6 +19,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.HashMap;
 
 import io.hardplant.imagenote.MainActivity;
 import io.hardplant.imagenote.R;
@@ -28,6 +30,7 @@ public class ClassifierService extends JobIntentService {
     private static final int NOTIFICATION_ID = 39;
     private static String path = "";
     private static FileObserver fileObserver;
+    private HashMap<String, String> db;
 
 
     public static void enqueueWork(Context context, Intent intent) {
@@ -39,6 +42,9 @@ public class ClassifierService extends JobIntentService {
     @Override
     public void onCreate() {
         super.onCreate();
+        path = getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS).getAbsolutePath();
+
+        db = new HashMap<>();
         NotificationCompat.Builder mNotifyBuilder = new NotificationCompat.Builder(getApplicationContext(), CHANNEL_ID);
 
         mNotifyBuilder
@@ -66,6 +72,7 @@ public class ClassifierService extends JobIntentService {
                 }
             };
             fileObserver.startWatching();
+            Log.i(TAG, "onCreate: File Observer started");
         }
 
     }
@@ -74,14 +81,24 @@ public class ClassifierService extends JobIntentService {
         File file = new File(s);
         try {
             Files.move(Paths.get(file.getAbsolutePath()), getTargetDir(s));
+            Log.i(TAG, "moveFile: File target:" + s);
+            Log.i(TAG, "moveFile: File moved:" + getTargetDir(s));
         } catch (IOException e) {
 
         }
     }
 
     private Path getTargetDir(String s) {
+        String imagesDir = getExternalFilesDir(Environment.DIRECTORY_PICTURES).getAbsolutePath();
+        String fileName = new File(s).getName();
+        String classifiedName = db.get(s);
 
-        return Paths.get(new File(s).getAbsolutePath());
+        if (classifiedName == null || classifiedName.length() == 0
+                || classifiedName.equals("not classified")) {
+            classifiedName = "unknown";
+        }
+
+        return Paths.get(imagesDir, classifiedName, fileName);
     }
 
     @Override
